@@ -40,7 +40,8 @@ let vm = Vue.createApp({
       }
     },
     getTempProduct(value) {
-      this.tempProduct = value;
+      this.isNew = value.isNew
+      this.tempProduct = value.item;
     },
   },
   created() {
@@ -70,11 +71,20 @@ vm.component("products-list", {
   },
   methods: {
     openModal(isNew, item) {
+
       if (isNew === "edit") {
-        this.$emit("updateProduct", item);
+        let data = {
+          isNew: false,
+          item
+        }
+        this.$emit("updateProduct", data);
         productModal.show();
       } else if (isNew === "delete") {
-        this.$emit("updateProduct", item);
+        let data = {
+          isNew:false,
+          item
+        }
+        this.$emit("updateProduct", data);
         delProductModal.show();
       }
     },
@@ -117,6 +127,7 @@ vm.component("product-modal", {
   data() {
     return {
       modal: null,
+      status:{}
     };
   },
   methods: {
@@ -140,6 +151,29 @@ vm.component("product-modal", {
         console.log(error);
       }
     },
+    async uploadFile () {
+      try {
+        const uploadedFile = this.$refs.fileInput.files[0]
+        console.log(uploadedFile)
+        const formData = new FormData()
+        formData.append('file-to-upload', uploadedFile)
+        this.status.fileUploading = true
+        const { data } = await axios.post(`${apiUrl}/api/${apiPath}/admin/upload`,formData,{
+          headers:{
+            'Content-Type': 'multipart/form-data',
+          }
+        })
+        console.log(data)
+        this.status.fileUploading = false
+        if (!data.success) {
+          throw new Error('上傳圖片失敗')
+        }
+        this.tempProduct.imageUrl = data.imageUrl
+        this.$refs.fileInput.value = ''
+      } catch (error) {
+        window.alert(error.message)
+      }
+    },
     createImages() {
       this.product.imagesUrl = [];
       this.product.imagesUrl.push("");
@@ -151,6 +185,7 @@ vm.component("product-modal", {
       productModal.hide();
     },
   },
+
 });
 // 產品刪除元件
 vm.component("del-product-modal", {
